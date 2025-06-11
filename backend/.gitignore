@@ -1,0 +1,73 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compiled output
+/dist
+/build
+/out
+/public
+
+# Dependency directories
+node_modules/
+yarn.lock
+package-lock.json
+
+# IDE-specific files
+.idea/
+*.suo
+*.ntvs*
+*.csproj.user*
+*.sln.user*
+*.user*
+*.userprefs*
+*.tmproj*
+*.opendb
+.vs/
+*.VC.db
+
+# Test-related files
+/coverage
+/test-results
+
+# System files
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.temp
+~*
+
+# macOS specific files
+*.swp
+
+# Other misc files
+*.bak
+*.orig
+*.old
+.eslintcache
+.nyc_output
+
+# for visual studio code
+.vscode/
+
+# for docker
+Dockerfile*
+docker-compose.yml
+.dockerignore
+
+# for nextjs
+.next/
+out/
+
+
+# Example for specific frameworks or tools
+# (adjust based on your project's technology)
+# .cache/
