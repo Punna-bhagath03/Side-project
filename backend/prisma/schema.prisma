@@ -1,0 +1,223 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Your PostgreSQL connection string
+}
+
+// Enums for roles, property types, and statuses
+
+enum UserRole {
+  GUEST
+  HOST
+  ADMIN
+}
+
+enum PropertyType {
+  APARTMENT
+  HOUSE
+  VILLA
+  HOTEL
+  GUESTHOUSE
+  BNB
+}
+
+enum PropertyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REJECTED
+}
+
+// User Model
+
+model User {
+  id           String   @id @default(cuid()) // UUID for IDs
+  name          String
+  image         String?
+  email        String   @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  role         UserRole @default(GUEST)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  properties    Property[] // A user can own multiple properties (if host)
+  bookings      Booking[] // A user can have multiple bookings (as guest)
+  reviews       Review[] // A user can submit multiple reviews
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@map("verification")
+}
+
+// Property Model
+
+model Property {
+  id            String         @id @default(cuid())
+  hostId        String         @map("host_id") // Foreign key to User
+  name          String
+  description   String?
+  address       String
+  city          String
+  state         String?
+  zipCode       String?        @map("zip_code")
+  country       String
+  latitude      Float
+  longitude     Float
+  propertyType  PropertyType   @map("property_type")
+  pricePerNight Float
+  maxGuests     Int            @default(1) @map("max_guests")
+  beds          Int?
+  photos        String[]
+  status        PropertyStatus @default(PENDING)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  // Relationships
+  host                   User                   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  amenities              PropertyAmenity[] // Many-to-many relationship through PropertyAmenity
+  reviews                Review[]
+  bookings               Booking[]
+  propertyAvailabilities PropertyAvailability[]
+}
+
+// Amenity Model (e.g., Wifi, Pool, AC)
+
+model Amenity {
+  id         String            @id @default(cuid())
+  name       String            @unique
+  properties PropertyAmenity[] // Many-to-many relationship through PropertyAmenity
+}
+
+// Junction table for Property-Amenities (Many-to-Many)
+
+model PropertyAmenity {
+  propertyId String @map("property_id")
+  amenityId  String @map("amenity_id")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@map("property_amenities")
+}
+
+// Review Model
+
+model Review {
+  id         String   @id @default(cuid())
+  guestId    String   @map("guest_id")
+  propertyId String   @map("property_id")
+  bookingId  String   @unique @map("booking_id") // A review is tied to a specific booking, unique for that booking
+  rating     Float
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relationships
+  guest    User     @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  booking  Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade) // Link review to a specific booking
+}
+
+// Booking Model
+
+model Booking {
+  id           String        @id @default(cuid())
+  guestId      String        @map("guest_id")
+  propertyId   String        @map("property_id")
+  checkInDate  DateTime      @db.Date @map("check_in_date") // Store as DATE type
+  checkOutDate DateTime      @db.Date @map("check_out_date")
+  totalGuests  Int           @map("total_guests")
+  totalPrice   Float         @map("total_price")
+  status       BookingStatus @default(PENDING)
+  // Change the payment properties according to razorpay !!
+  // paymentStatus  String        @default("pending") @map("payment_status") // e.g., 'pending', 'paid', 'refunded'
+  // paymentIntentId String?       @map("payment_intent_id") // For Stripe/PayPal reference
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  // Relationships
+  guest    User     @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  review   Review? // A booking *might* have one review
+}
+
+// Property Availability & Pricing Overrides
+
+model PropertyAvailability {
+  id            String   @id @default(cuid())
+  propertyId    String   @map("property_id")
+  availableDate DateTime @db.Date @map("available_date") // Store as DATE type
+  isAvailable   Boolean  @default(true) @map("is_available")
+  pricePerNight Float? @map("price_per_night") // Optional override for price
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  // Ensures unique entry per property per date
+  // Map to snake_case table name
+  @@unique([propertyId, availableDate])
+  @@map("property_availability")
+}

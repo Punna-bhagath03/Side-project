@@ -71,3 +71,4 @@ out/
 # Example for specific frameworks or tools
 # (adjust based on your project's technology)
 # .cache/
+/src/generated/prisma

@@ -10,11 +10,21 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "better-auth": "^1.2.9",
+    "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.0",
     "nodemon": "^3.1.10",
     "typescript": "^5.8.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.9.0"
   }
 }
